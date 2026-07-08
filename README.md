@@ -1,1 +1,66 @@
-# Caja-compostaje-inteligente
+# Compostaje de PLA
+
+## Autoras
+* Linda Orduy
+* Paola Bello
+
+## Descripción del proyecto
+Sistema autónomo de monitoreo y control de temperatura para una caja de pruebas de compostaje de PLA, con el objetivo de mantener el entorno entre 58 °C y 70 °C. Por un lado, el núcleo de nuestro sistema embebido es un microcontrolador ESP32‑S3‑WROOM‑1, que lee un sensor de temperatura DS18B20 y controla un actuador, una resistencia calefactora de fibra de carbono. 
+Para controlar la potencia de la resistencia se empleo un MOSFET IRLZ44N que actua como un ON/OFF, alimentado a través de un convertidor DC‑DC elevador que eleva los 12 V de una fuente a 35 V, obteniendo una potencia de calefacción de aproximadamente 15 W. Nuestra diseño de tarjeta integra el circuito de potencia por lo que a esta se conecta el sensor y la resistencia mientras que el elevador se encuentra de forma externa.
+
+## Diseño PCB 
+Desafios de desarollo, componentes (link compra, footprint) 
+| Referencia | Cantidad | Descripcion | Footprint |
+|------------|----------|-------------|-----------|
+| Raspberry Pi Zero 2 W | — |
+
+### Esquematico 
+Esquematico tarjeta kicad y para conexcion con elevador y resistencia 
+
+### Desafios de diseño
+Se obtuvieron diversos diseños debido a errores que se fueron presentaron o actualizaciones a implementar en el diseño
+* Inicialmnete, la primer PCB diseñada presentó el siguiente error: islas en la zona de cobre de tierra (GND) que dejaban partes del circuito eléctricamente desconectadas. A partir de aca, se empezo a probar en protoboard de manera funcional para avanzar paralelamente tanto en el diseño como en el codigo y toma de datos.
+* SOlder mask, prototipado
+
+## Consideraciones importantes resistencia calefactora
+Para esta entrega, se tiene una resistencia de 2.4 metros de longitud, lo primero que se hizo fue tomar sus extremos y medir la resistencia con un multimetro para proceder con los siguientes calculos
+| Parámetro        | Valor       |
+|------------------|-------------|
+| Resistencia total | 79.1 Ω      |
+| Longitud         | 2.385 m    |
+| Resistencia/metro| 33.165 Ω/m |
+| Potencia máx. recomendada | 25 W/m |
+| Potencia máx. segura total (calculada) | 50 W |
+
+**Paso 1: Resistencia por metro**
+$$R_{\text{por metro}} = \frac{79.1\ \Omega}{2.385\ \text{m}} = 33.165\ \Omega/\text{m}$$
+
+**Paso 2: Potencia a 34 V**
+$$P = \frac{V^2}{R} = \frac{34^2}{79.1} = \frac{1156}{79.1} \approx 14.614\ \text{W}$$
+
+**Paso 3: Potencia máxima segura por metro (límite del fabricante)**
+$$P_{\text{máx total}} = 25\ \text{W/m} \times 2.385\ \text{m} = 59.625\ \text{W}$$
+Por seguridad, limitamos a **50 W**.
+$$P_{\text{por metro}} = \frac{50\ \text{W}}{2.385\ \text{m}} \approx 20.96\ \text{W/m}$$
+
+**Paso 4: Voltaje necesario para 21 W por metro (referencia de diseño)**
+$$V = \sqrt{P \cdot R} = \sqrt{21 \cdot 79.1} \approx 40\ \text{a}\ 45\ \text{V}$$
+
+**Paso 5: Prueba a 48 V**
+$$I = \frac{48\ \text{V}}{79.1\ \Omega} \approx 0.607\ \text{A}$$
+$$P = 48\ \text{V} \times 0.607\ \text{A} \approx 29.1\ \text{W}$$
+
+## Entrenamiento de IA
+Para registrar datos, el ESP32 envía por puerto serie las lecturas de temperatura y el estado del calefactor en formato CSV. Un script de Python en la computadora captura esas líneas y las guarda automáticamente en archivos .csv, con columnas de tiempo, temperatura y estado del calefactor (1=ON, 0=OFF). Se generaron dos conjuntos de datos: uno solo con el sensor en temperatura ambiente y otro con el actuador funcionando bajo control de histéresis simple (encender debajo de 58 °C, apagar sobre 70 °C). Ambos conjuntos fueron combinados para aumentar la cantidad de ejemplos de entrenamiento, tras limpiarlos de valores nulos y atípicos (como la medición dentro de la nevera).
+
+Con los datos recopilados se entrenó un modelo de red neuronal en Google Colab utilizando TensorFlow. El modelo es de clasificación binaria: predice si el calefactor debe estar encendido o apagado basándose en los últimos 10 valores de temperatura (ventana temporal de 20 minutos). La arquitectura empleada es una red secuencial con dos capas ocultas de 16 neuronas, activación ReLU y una salida sigmoide. Tras resolver problemas iniciales de loss: nan debidos a conjuntos de validación desbalanceados y etiquetas con NaN, se implementó una división estratificada (60 % entrenamiento, 20 % validación, 20 % prueba) que preserva la proporción de clases en cada subconjunto. El modelo entrenado se convirtió a TensorFlow Lite y se generó el archivo modelo_calefactor.h, listo para ser integrado en el firmware del ESP32 mediante la librería EloquentTinyML.
+
+
+
+## Implementacion IA en arduino IDE
+Explicacion codigo 
+
+## Conclusiones
+
+
+
