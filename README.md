@@ -24,31 +24,33 @@ Se obtuvieron diversos diseños debido a errores que se fueron presentaron o act
 
 ## Consideraciones importantes resistencia calefactora
 Para esta entrega, se tiene una resistencia de 2.4 metros de longitud, lo primero que se hizo fue tomar sus extremos y medir la resistencia con un multimetro para proceder con los siguientes calculos
-| Parámetro        | Valor       |
-|------------------|-------------|
-| Resistencia total | 79.1 Ω      |
-| Longitud         | 2.385 m    |
-| Resistencia/metro| 33.165 Ω/m |
-| Potencia máx. recomendada | 25 W/m |
-| Potencia máx. segura total (calculada) | 50 W |
 
-**Paso 1: Resistencia por metro**
+**Resistencia por metro**<br />
 $$R_{\text{por metro}} = \frac{79.1\ \Omega}{2.385\ \text{m}} = 33.165\ \Omega/\text{m}$$
 
-**Paso 2: Potencia a 34 V**
+El fabricante nos da un limite de potencia por metro, asi que calculamos la potencia total para la fuente que queremos implementar
+**Potencia a 35 V**<br />
 $$P = \frac{V^2}{R} = \frac{34^2}{79.1} = \frac{1156}{79.1} \approx 14.614\ \text{W}$$
 
-**Paso 3: Potencia máxima segura por metro (límite del fabricante)**
+**Potencia máxima segura por metro (límite del fabricante)**<br />
 $$P_{\text{máx total}} = 25\ \text{W/m} \times 2.385\ \text{m} = 59.625\ \text{W}$$
 Por seguridad, limitamos a **50 W**.
 $$P_{\text{por metro}} = \frac{50\ \text{W}}{2.385\ \text{m}} \approx 20.96\ \text{W/m}$$
 
-**Paso 4: Voltaje necesario para 21 W por metro (referencia de diseño)**
+**Voltaje necesario para 21 W por metro (referencia de diseño)**<br />
 $$V = \sqrt{P \cdot R} = \sqrt{21 \cdot 79.1} \approx 40\ \text{a}\ 45\ \text{V}$$
 
-**Paso 5: Prueba a 48 V**
+**Prueba a 48 V**<br />
 $$I = \frac{48\ \text{V}}{79.1\ \Omega} \approx 0.607\ \text{A}$$
 $$P = 48\ \text{V} \times 0.607\ \text{A} \approx 29.1\ \text{W}$$
+
+| Parámetro        | Valor       |
+|------------------|-------------|
+| Resistencia total | 79.1 Ω      |
+| Longitud         | 2.4 m    |
+| Resistencia/metro| 33.2 Ω/m |
+| Potencia máx. recomendada por el fabricante| 25 W/m |
+| Potencia máx. segura total (calculada) | 50 W |
 
 ## Entrenamiento de IA
 Para registrar datos, el ESP32 envía por puerto serie las lecturas de temperatura y el estado del calefactor en formato CSV. Un script de Python en la computadora captura esas líneas y las guarda automáticamente en archivos .csv, con columnas de tiempo, temperatura y estado del calefactor (1=ON, 0=OFF). Se generaron dos conjuntos de datos: uno solo con el sensor en temperatura ambiente y otro con el actuador funcionando bajo control de histéresis simple (encender debajo de 58 °C, apagar sobre 70 °C). Ambos conjuntos fueron combinados para aumentar la cantidad de ejemplos de entrenamiento, tras limpiarlos de valores nulos y atípicos (como la medición dentro de la nevera).
