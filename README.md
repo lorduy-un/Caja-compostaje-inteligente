@@ -32,6 +32,8 @@ El fabricante nos da un limite de potencia por metro, asi que calculamos la pote
 **Potencia a 35 V**<br />
 $$P = \frac{V^2}{R} = \frac{34^2}{79.1} = \frac{1156}{79.1} \approx 14.614\ \text{W}$$
 
+Y para saber si esta potencia es segura, hacemos el siguiente calculo. De igual forma, conociendo este limite fisico de 25W/m, bajamos un poco el umbral a 21W/m y procedemos tambien a calcular la tension max que podemos aplicar para no exceder la potencia que soporta.
+
 **Potencia máxima segura por metro (límite del fabricante)**<br />
 $$P_{\text{máx total}} = 25\ \text{W/m} \times 2.385\ \text{m} = 59.625\ \text{W}$$
 Por seguridad, limitamos a **50 W**.
@@ -40,9 +42,6 @@ $$P_{\text{por metro}} = \frac{50\ \text{W}}{2.385\ \text{m}} \approx 20.96\ \te
 **Voltaje necesario para 21 W por metro (referencia de diseño)**<br />
 $$V = \sqrt{P \cdot R} = \sqrt{21 \cdot 79.1} \approx 40\ \text{a}\ 45\ \text{V}$$
 
-**Prueba a 48 V**<br />
-$$I = \frac{48\ \text{V}}{79.1\ \Omega} \approx 0.607\ \text{A}$$
-$$P = 48\ \text{V} \times 0.607\ \text{A} \approx 29.1\ \text{W}$$
 
 | Parámetro        | Valor       |
 |------------------|-------------|
@@ -53,16 +52,27 @@ $$P = 48\ \text{V} \times 0.607\ \text{A} \approx 29.1\ \text{W}$$
 | Potencia máx. segura total (calculada) | 50 W |
 
 ## Entrenamiento de IA
-Para registrar datos, el ESP32 envía por puerto serie las lecturas de temperatura y el estado del calefactor en formato CSV. Un script de Python en la computadora captura esas líneas y las guarda automáticamente en archivos .csv, con columnas de tiempo, temperatura y estado del calefactor (1=ON, 0=OFF). Se generaron dos conjuntos de datos: uno solo con el sensor en temperatura ambiente y otro con el actuador funcionando bajo control de histéresis simple (encender debajo de 58 °C, apagar sobre 70 °C). Ambos conjuntos fueron combinados para aumentar la cantidad de ejemplos de entrenamiento, tras limpiarlos de valores nulos y atípicos (como la medición dentro de la nevera).
+Inicialmente, para la recoleccion de los datos, el ESP32 envía por puerto serie las lecturas de temperatura y el estado del calefactor luego un script de Python en la computadora captura esas líneas y las guarda automáticamente en archivos .csv, con columnas de tiempo, temperatura y estado del calefactor (1=ON, 0=OFF). Se generaron dos conjuntos de datos: uno solo con el sensor en temperatura ambiente y otro con el actuador funcionando solo en un rango determinado: encender debajo de 37 °C, apagar sobre 40 °C. Aunque el objetivo en un comienzo era manejar un umbral de 60-70 ºC, para esta primera entrega por limitaciones de tension de la fuente y longitud de la resitencia calefactora no se alcanzo esta temperatura, asi que para la otra entrega se va a optar por una resistencia mas larga y una fuente de tension mas alta.
+Volviendo al entrenamiento, ambos conjuntos de datos fueron combinados para aumentar la cantidad de ejemplos de entrenamiento, tras limpiarlos de valores nulos y atípicos (como la medición dentro de la nevera) ya con los datos limpios se procedio a definir * Entradas: Temperatura y estado actual del calefactor
+* Label de salida: etiqueta_futura del calefactor (1=ON, 0=OFF)
+Acto seguido se procedio a aplicar un normalizacion a los datos de temperatura, debido a que las redes neuronales aprenden ajustando números muy pequeños llamados pesos y ese proceso de ajuste funciona mal cuando los datos de entrada tienen escalas muy diferentes o muy grandes; si le pasas al modelo temperaturas crudas como 28.0 o 55.0, esos números dominan el cálculo y el entrenamiento se vuelve inestable o muy lento. Con valores entre 0 y 1 todos los inputs están en la misma escala y la red aprende de forma mucho más eficiente.
+Entonces se define un dato de temperatura minimo como 0 y un maximo como 1 y lo que pasa a partir de esto es que se reescala cualquier número al rango [0, 1]
 
-Con los datos recopilados se entrenó un modelo de red neuronal en Google Colab utilizando TensorFlow. El modelo es de clasificación binaria: predice si el calefactor debe estar encendido o apagado basándose en los últimos 10 valores de temperatura (ventana temporal de 20 minutos). La arquitectura empleada es una red secuencial con dos capas ocultas de 16 neuronas, activación ReLU y una salida sigmoide. Tras resolver problemas iniciales de loss: nan debidos a conjuntos de validación desbalanceados y etiquetas con NaN, se implementó una división estratificada (60 % entrenamiento, 20 % validación, 20 % prueba) que preserva la proporción de clases en cada subconjunto. El modelo entrenado se convirtió a TensorFlow Lite y se generó el archivo modelo_calefactor.h, listo para ser integrado en el firmware del ESP32 mediante la librería EloquentTinyML.
+IMAGEN VISUALIZACION DE DATOS
 
+Con los datos recopilados se entrenó un modelo de red neuronal en Google Colab utilizando TensorFlow, el modelo es de clasificación binaria: predice si el calefactor debe estar encendido o apagado basándose en los últimos 10 valores de temperatura. La arquitectura empleada es una red secuencial con dos capas ocultas de 16 neuronas, activación ReLU y una salida sigmoide, tambien se implementó una división: 60 % entrenamiento, 20 % validación, 20 % prueba. Finalmenten, el modelo entrenado se convirtió a TensorFlow Lite y se generó el archivo modelo_calefactor.h, listo para ser integrado en el firmware del ESP32 mediante la librería 
 
+IMAGEN DIVISION DATOS
 
-## Implementacion IA en arduino IDE
-Explicacion codigo 
+Con esto claro, el programa al arrancar inicializa el sensor DS18B20 y el pin del calefactor se configura como salida y se pone en LOW para garantizar que la resistencia calefactora empieza apagada. Al mismo tiempo, el modelo de inteligencia artificial se carga en memoria usando TFLMsetupModel, que toma el array de bytes del archivo model.h
+Una vez en loop(), el programa no usa delay() sino que revisa constantemente si han pasado 30 segundos desde la última lectura comparando millis() con ultimaLectura. Cuando ese tiempo se cumple, le pide la temperatura al sensor y valida que no sea -127°C, que es el código de error del DS18B20 cuando hay un problema de conexión y si la lectura es válida, el programa pasa a la fase de decisión.
+La fase de decisión tiene dos caminos. 
+* El primero es la inteligencia artificial: la función predecirIA toma la temperatura actual y el estado actual del calefactor, normaliza los datos de temperatura, los escribe en las dos ranuras de entrada del modelo y llama a TFLMpredict(). El modelo ejecuta sus cálculos internos y deposita un número entre 0 y 1 en la ranura de salida, si ese número es mayor o igual a 0.5 el modelo está diciendo "en el próximo minuto la temperatura va a necesitar calefactor", y la función retorna 1. Por otro lado, si es menor retorna 0.
+* El segundo camino se activa solo si el modelo falla, es decir si el metodo anterior retorna un error. En ese caso el sistema cae al control clásico: si la temperatura bajó de 37°C enciende, si subió de 40°C apaga, y si está entre los dos valores mantiene el estado que tenía. Este respaldo garantiza que el sistema nunca se queda sin control aunque haya un problema con el modelo.
+
+IAMGEN ENTRENAMIENTO 
 
 ## Conclusiones
-
+* FSDFS
 
 
