@@ -41,6 +41,7 @@ Como circuito externo de alimentacion, se tiene una fuente de 12v conectada a un
 | ESP32-S3-WROOM-1 | 1 | RF Module, ESP32-S3 SoC | RF Module:ESP32-S3-WROOM-1 |
 | AMS1117-3.3 | 1 | 1A Low Dropout regulator | Package TO SOT SMD:SOT-223-3 TabPin2 |
 | Q1 | 1 | IRL44N | IRFZ44NPBF:TO254P1016X419X2286-3 |
+
 ![tarje](images/tarjeta1.png)
 
 
@@ -80,7 +81,9 @@ $$V = \sqrt{P \cdot R} = \sqrt{21 \cdot 79.1} \approx 40\ \text{a}\ 45\ \text{V}
 | Resistencia/metro| 33.2 Ω/m |
 | Potencia máx. recomendada por el fabricante| 25 W/m |
 | Potencia máx. segura total (calculada) | 50 W |
+
 ![caja1](images/caja2.png)
+
 ![caja2](images/caja1.png)
 
 
@@ -106,7 +109,6 @@ La fase de decisión tiene dos caminos.
 ![entrena](images/G4.png)
 
 ![entrenamiento](images/G1.png)
-## Conclusiones
-* FSDFS
+
 
 
