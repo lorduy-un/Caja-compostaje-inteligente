@@ -1,24 +1,24 @@
-# Primer prototipo compostaje de PLA
+# Prototipo compostaje de PLA
 
 ## Autoras
 * Linda Orduy
 * Paola Bello
 
 ## Descripción del proyecto
-Sistema autónomo de monitoreo y control de temperatura para una caja de pruebas de compostaje de PLA, con el objetivo de mantener el entorno entre 37 °C y 40 °C. Por un lado, el núcleo de nuestro sistema embebido es un microcontrolador ESP32‑S3‑WROOM‑1, que lee un sensor de temperatura DS18B20 y controla un actuador, una resistencia calefactora de fibra de carbono. 
-Para controlar la potencia de la resistencia se empleo un MOSFET IRLZ44N que actua como un ON/OFF, alimentado a través de un convertidor DC‑DC elevador que eleva los 12 V de una fuente a 35 V, obteniendo una potencia de calefacción de aproximadamente 15 W. Nuestro diseño de tarjeta integra el circuito de potencia por lo que a esta se conecta el sensor y la resistencia mientras que el elevador se encuentra de forma externa.
+Este proyecto consiste en un sistema autónomo de monitoreo y control de temperatura para una caja de pruebas de compostaje de PLA, con el objetivo inicial de mantener el entorno entre 37 °C y 40 °C. Por un lado, el núcleo de nuestro sistema embebido es un microcontrolador ESP32‑S3‑WROOM‑1, que lee un sensor de temperatura DS18B20 y controla un actuador, una resistencia calefactora de fibra de carbono. 
+Por otro lado, en el diseño de la PCB se incluyo el circuito que controla la potencia de la resistencia con un mosfet IRLZ44N que actua como un ON/OFF, alimentado a través de un convertidor DC‑DC elevador que eleva los 12 V de una fuente a 35 V, obteniendo una potencia de calefacción de aproximadamente 15 W.
 
 ## Diseño PCB 
 
 ### Esquematico 
 ![esquema](images/esquematico.jpeg)
 
-En terminos generales, nuestra tarjeta tiene alimentacion de 5v por una USB tipo C con proteccion ESD, un regulador de voltaje para obtener la tensión de 3.3 V, pulsadores para los circuitos de arranque y reinicio EN y BOOT con sus respectivas resistencias pull‑up y condensadores de desacople para filtrar rebotes y estabilizar la tensión de habilitación.
-Tambien se integro el circuito de potencia que controla FNWFWEI
-* El sensor de temperatura se conecta con tres hilos: VDD (3.3 V), GND y DATA al GPIO 14, con una resistencia de 4.7 kΩ entre DATOS y 3.3 V.
-* Por otro lado, el GPIO 12 se conecta a través de una resistencia de 220 ohms al gate del mosfet de potencia IRLZ44N, entre gate y source se conecta una resistencia pull‑down de 10 kΩ para asegurar que el MOSFET esté apagado cuando el GPIO no está definido y finalmente el drain va hacia un extremo de la resistencia calefactora.
-* Las dos borneras entonces se encuentran destinadas para la conexion de la resistencia calefactora y los 2 hilos del sensor de temperatura 
-Como circuito externo de alimentacion, se tiene una fuente de 12v conectada a un elevador que nos dara la alimentacion de 35V, donde el otro extremo de la resistencia calefactora va hacia el positivo de la fuente y el negativo de esta se conecta a la tierra comun de la tarjeta. 
+En terminos generales, nuestra tarjeta recibe una alimentacion de 5v por una USB tipo C que incluye proteccion ESD, un regulador de voltaje para obtener la tensión de 3.3 V, pulsadores para los circuitos de arranque y reinicio EN y BOOT con sus respectivas resistencias pull‑up y condensadores de desacople para filtrar rebotes y estabilizar la tensión de habilitación.
+Tambien se integro el circuito de potencia que controla la potencia de la resistencia calefactora y se conecta de la siguiente manera:
+* El sensor de temperatura se conecta con tres hilos: VDD (3.3 V), GND y DATA al GPIO 14, con una resistencia de 4.7 kΩ entre DATA y 3.3 V.
+* Por otro lado, el GPIO 12 se conecta a través de una resistencia de 220 Ω al gate del mosfet de potencia IRLZ44N, entre gate y source se conecta una resistencia pull‑down de 10 kΩ para asegurar que el mosfet esté apagado cuando el GPIO no está definido y finalmente el drain va hacia un extremo de la resistencia calefactora.
+* Las dos borneras entonces se encuentran destinadas para la conexion de la resistencia calefactora y los 3 hilos del sensor de temperatura. 
+Como circuito externo de alimentacion, se tiene una fuente de 12v conectada a un elevador que nos da como salida la alimentacion de 35V. En esta salida de 35V se conecta el otro extremo de la resistencia calefactora hacia el positivo de la fuente y el negativo de esta se conecta a la tierra comun de la tarjeta. 
 
 | Referencia | Cantidad | Descripcion | Footprint |
 |------------|----------|-------------|-----------|
@@ -49,8 +49,9 @@ Como circuito externo de alimentacion, se tiene una fuente de 12v conectada a un
 Se obtuvieron diversos diseños debido a errores que se fueron presentaron o actualizaciones a implementar en el diseño
 * Inicialmnete, la primer PCB diseñada presentó el siguiente error: islas en la zona de cobre de tierra (GND) que dejaban partes del circuito eléctricamente desconectadas. A partir de aca, se empezo a probar en protoboard de manera funcional para avanzar paralelamente tanto en el diseño como en el codigo y toma de datos.
 * Conseguir el componente para la proteccion ESD asi como la huella para Kicad fue complicado porque la mayoria de huellas que se encontraban en Kicad eran dificiles de conseguir en mi pais.
-* El mayor reto fueron las limitaciones que habia de diseño y soldadura, ya que debia ser un diseño de una capa con elementos SMD y THT, muchas veces se cruzaban unas cosas con otras pero finalmente se logro la impresion de nuestro diseño. Al inicio soldar elementos tan pequeños nos implico mas gastos en nuevos elementos para reponer.
-* Ya impresa la pieza se hicieron diversas pruebas para poder aplicar el solder mask a mano con luz ultravioleta donde se debia cubrir cada pin con colbon antes de aplicar esta.
+* El mayor reto fueron las limitaciones que habia de diseño y soldadura, ya que debia ser un diseño de una capa con elementos SMD y THT, muchas veces se cruzaban unas cosas con otras pero finalmente se logro la impresion de nuestro diseño. Tambien al inicio soldar elementos tan pequeños nos implico mas gastos en nuevos elementos para reponer, ademas del tiempo que tomaba soldar cada uno.
+* Ya impresa la pieza se hicieron diversas pruebas para poder aplicar el solder mask a mano con luz ultravioleta donde se debia cubrir cada pin con colbon antes de aplicar esta por lo que en general el diseño de la PCB en todas sus etapadas fue lo mas retador y demorado del proyecto pero deja un aprendizaje mas practico de como se elaboran estas.
+
 ![solder](images/mask.png)
 
 ## Consideraciones importantes resistencia calefactora
